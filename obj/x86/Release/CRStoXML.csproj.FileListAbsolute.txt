@@ -4,3 +4,12 @@ C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Release\App.g.cs
 C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Release\CRS_MarkupCompile.cache
 C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Release\CRS.g.resources
 C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Release\CRStoXML.csproj.GenerateResource.Cache
+C:\Users\Grant\Documents\GitHub\CRS-tools\bin\Release\CRS.exe.manifest
+C:\Users\Grant\Documents\GitHub\CRS-tools\bin\Release\CRS.application
+C:\Users\Grant\Documents\GitHub\CRS-tools\bin\Release\CRS.exe
+C:\Users\Grant\Documents\GitHub\CRS-tools\bin\Release\CRS.pdb
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Release\CRS.Properties.Resources.resources
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Release\CRS.exe.manifest
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Release\CRS.application
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Release\CRS.exe
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Release\CRS.pdb
