@@ -1,0 +1,22 @@
+C:\Users\Grant\documents\visual studio 2010\Projects\CRS\CRS\bin\Debug\CRS.exe
+C:\Users\Grant\documents\visual studio 2010\Projects\CRS\CRS\bin\Debug\CRS.pdb
+C:\Users\Grant\documents\visual studio 2010\Projects\CRS\CRS\obj\x86\Debug\MainWindow.baml
+C:\Users\Grant\documents\visual studio 2010\Projects\CRS\CRS\obj\x86\Debug\MainWindow.g.cs
+C:\Users\Grant\documents\visual studio 2010\Projects\CRS\CRS\obj\x86\Debug\App.g.cs
+C:\Users\Grant\documents\visual studio 2010\Projects\CRS\CRS\obj\x86\Debug\CRS_MarkupCompile.cache
+C:\Users\Grant\documents\visual studio 2010\Projects\CRS\CRS\obj\x86\Debug\CRS.g.resources
+C:\Users\Grant\documents\visual studio 2010\Projects\CRS\CRS\obj\x86\Debug\CRS.Properties.Resources.resources
+C:\Users\Grant\documents\visual studio 2010\Projects\CRS\CRS\obj\x86\Debug\CRStoXML.csproj.GenerateResource.Cache
+C:\Users\Grant\documents\visual studio 2010\Projects\CRS\CRS\obj\x86\Debug\CRS.exe
+C:\Users\Grant\documents\visual studio 2010\Projects\CRS\CRS\obj\x86\Debug\CRS.pdb
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Debug\CRS.exe
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Debug\CRS.pdb
+C:\Users\Grant\Documents\GitHub\CRS-tools\bin\Debug\CRS.exe
+C:\Users\Grant\Documents\GitHub\CRS-tools\bin\Debug\CRS.pdb
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Debug\MainWindow.baml
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Debug\MainWindow.g.cs
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Debug\App.g.cs
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Debug\CRS_MarkupCompile.cache
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Debug\CRS.g.resources
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Debug\CRS.Properties.Resources.resources
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Debug\CRStoXML.csproj.GenerateResource.Cache

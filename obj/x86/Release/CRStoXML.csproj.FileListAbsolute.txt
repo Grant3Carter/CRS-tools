@@ -1,0 +1,6 @@
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Release\MainWindow.baml
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Release\MainWindow.g.cs
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Release\App.g.cs
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Release\CRS_MarkupCompile.cache
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Release\CRS.g.resources
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Release\CRStoXML.csproj.GenerateResource.Cache
