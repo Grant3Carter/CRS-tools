@@ -20,6 +20,7 @@ namespace CRS
     {
         #region Members
         public List<table> tables = new List<table>();
+        public List<table> views = new List<table>();
 
         public static int maximumRows = 100;
 
@@ -35,7 +36,25 @@ namespace CRS
         #region RefreshButton
         private void Refresh_Click(object sender, RoutedEventArgs e)
         {
+            if (Keyboard.Modifiers == ModifierKeys.Shift)
+            {
+                // This POC opens an XAML form in a new window and dynamically adds controls - next step, do so from a legacy prw file!
+                var win2 = new PrwHost();
+                win2.textBox1.Text = "hello world";
+
+                TextBlock printTextBlock = new TextBlock();
+                printTextBlock.Text = "Hello, World!";
+                win2.stackPanel1.Children.Add(printTextBlock);
+                Button btn = new Button();
+                btn.Content = "Dynamic Button";
+                win2.stackPanel1.Children.Add(btn);
+
+                win2.Show();
+                return;
+            }
+
             tables = new List<table>();
+            views = new List<table>();
 
             Mouse.OverrideCursor = Cursors.AppStarting;
             Refresh.IsEnabled = false;
@@ -77,8 +96,12 @@ namespace CRS
                     else if (!String.IsNullOrEmpty(l))
                     {
                         // otherwise CDA table names are assumed (.def extension is optional)
+
                         if (File.Exists(l) || File.Exists(l + ".def"))
-                            tables.Add(new table((Path.GetFileNameWithoutExtension(l) + ".def").ToLower()));
+                            if (l.Contains(".prw"))
+                                views.Add(new table(l.ToLower()));
+                            else
+                                tables.Add(new table((Path.GetFileNameWithoutExtension(l) + ".def").ToLower()));
                     }
                 }
                 // TODO alternatively, consider auto "use" based on lookup and table requirements
@@ -302,6 +325,9 @@ namespace CRS
                 return;
             name = System.IO.Path.GetFileNameWithoutExtension(file);
             bool bInEnum = false;
+            bool bInFields = false;
+           
+            var Control = new field();
             List<String> currentEnums = new List<string>();
             int i = 0;
             foreach (var l in File.ReadAllLines(file))
@@ -327,6 +353,52 @@ namespace CRS
                         currentEnums.Add(l);
                     continue;
                 }
+                #endregion
+
+                #region PrwFields
+                if (bInFields)
+                {
+                    if (l.StartsWith(".end"))
+                    {
+                        if (!String.IsNullOrEmpty(Control.name))
+                            fields.Add(Control);
+
+                        bInFields = false;
+                        continue;
+                    }
+                    var line = l.Trim();
+                    var c = line[0];
+                    if (Char.IsLetter(c) || c == '_')
+                    {
+                        // Field
+                        if (!String.IsNullOrEmpty(Control.name))
+                            fields.Add(Control);
+
+                        var splits = line.Split(';');
+                        Control = new field();
+                        Control.type = 'S';
+                        Control.name = splits[0].Trim();
+                        Control.description = splits[1].Trim();
+                       
+
+                    }
+                    else if (c == '/')
+                    {
+                        Control.attributes.Add(new attribute() { value = line });
+                        // Qualifier 
+                        // TODO Type, Size
+                        
+                    }
+
+
+
+                }
+                if (l.StartsWith(".field"))
+                {
+                    bInFields = true;
+                    continue;
+                }
+
                 #endregion
 
                 #region Field
@@ -622,7 +694,7 @@ namespace CRS
             if (field.lookup != null)
                 return "lookup";
 
-            StringBuilder sb; 
+            StringBuilder sb;
 
             switch (field.type)
             {
@@ -759,6 +831,7 @@ namespace CRS
     {
         #region Members
         public string name;
+        public string description;
         public int offset;
         public int length;
         public int range;
@@ -798,12 +871,17 @@ namespace CRS
                 viewTable = splitSemicolon[2].Split(' ')[0]; // TODO Parse e.g. via ID suffix
         }
 
+        public field()
+        {
+            // TODO: Complete member initialization
+        }
+
         public override string ToString()
         {
             return name;
         }
 
-        public string Description()
+        public string typeDescription()
         {
             switch (type)
             {
