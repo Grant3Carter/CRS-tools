@@ -725,7 +725,7 @@ namespace CRS
                                 sb.Append(Convert.ToChar(C));
                         }
 
-                    // TODO consider a base64 encode if non-printing characters are encountered (but this would only make sense Word .doc format)
+                    // TODO consider a base64 encode if non-printing characters are encountered (but this would only make sense for e.g. Word .doc format)
                     return sb.ToString().Trim();
 
             }
