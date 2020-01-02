@@ -42,13 +42,16 @@ namespace CRS
                 var win2 = new PrwHost();
                 win2.textBox1.Text = "hello world";
 
-                TextBlock printTextBlock = new TextBlock();
-                printTextBlock.Text = "Hello, World!";
-                win2.stackPanel1.Children.Add(printTextBlock);
-                Button btn = new Button();
-                btn.Content = "Dynamic Button";
-                win2.stackPanel1.Children.Add(btn);
-
+                if (views.Count == 0)
+                    return;
+                foreach (var f in views[0].fields)
+                {
+                    Button btn = new Button();
+                    btn.Margin = new Thickness(f.x, f.y, 0, 0);
+                    btn.Width = f.width;
+                    btn.Height = f.height;
+                    win2.stackPanel1.Children.Add(btn);
+                }
                 win2.Show();
                 return;
             }
@@ -377,17 +380,33 @@ namespace CRS
                         var splits = line.Split(';');
                         Control = new field();
                         Control.type = 'S';
-                        Control.name = splits[0].Trim();
+                        Control.name = splits[0].Trim().ToLower();
                         Control.description = splits[1].Trim();
                        
 
                     }
                     else if (c == '/')
                     {
+                        var words = line.Split(' ');
                         Control.attributes.Add(new attribute() { value = line });
                         // Qualifier 
                         // TODO Type, Size
-                        
+                        if (words.Length > 1)
+                        switch (words[0].ToLower())
+                        {
+                            case "/type":
+                                break;
+
+                            case "/size":
+                                var splits = words[1].Split(',');
+                                if (splits.Length < 4)
+                                    break;
+                                Int32.TryParse(splits[0], out Control.x);
+                                Int32.TryParse(splits[1], out Control.y);
+                                Int32.TryParse(splits[2], out Control.width);
+                                Int32.TryParse(splits[3], out Control.height);
+                                break;
+                        }
                     }
 
 
@@ -838,6 +857,11 @@ namespace CRS
         public char type;
         public lookup lookup;
         public string viewTable;
+
+        public int x;
+        public int y;
+        public int width;
+        public int height;
 
         private string line;
 
