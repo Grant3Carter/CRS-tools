@@ -357,7 +357,7 @@ namespace CRS
             }
             IdentifyAutoKey();
 
-            // If x64 is insufficient to deal with memory issues for large .dat or .dvm files, then re-implement using sequential reads
+            // If x64 is insufficient to deal with memory issues for large .dat or .dvm files, then re-implement using sequential reads 
             // https://docs.microsoft.com/en-us/dotnet/api/system.io.stream.read?view=netframework-4.8
             try
             {
