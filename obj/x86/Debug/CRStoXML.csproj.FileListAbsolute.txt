@@ -20,3 +20,7 @@ C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Debug\CRS_MarkupCompile.cache
 C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Debug\CRS.g.resources
 C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Debug\CRS.Properties.Resources.resources
 C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Debug\CRStoXML.csproj.GenerateResource.Cache
+C:\Users\Grant\Documents\GitHub\CRS-tools\bin\Debug\CRS.exe.manifest
+C:\Users\Grant\Documents\GitHub\CRS-tools\bin\Debug\CRS.application
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Debug\CRS.exe.manifest
+C:\Users\Grant\Documents\GitHub\CRS-tools\obj\x86\Debug\CRS.application

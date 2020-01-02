@@ -58,8 +58,6 @@ namespace CRS
             Directory.SetCurrentDirectory(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
             if (File.Exists("CRStoXML.txt"))
             {
-
-
                 foreach (var l in File.ReadAllLines("CRStoXML.txt"))
                 {
                     // ! comment 
@@ -87,6 +85,7 @@ namespace CRS
             }
             else
             {
+                // default "standard" CRS application folder
                 Directory.SetCurrentDirectory("c:\\crsapp\\pmswin");
 
                 // Default partial PMS table list 
@@ -623,11 +622,14 @@ namespace CRS
             if (field.lookup != null)
                 return "lookup";
 
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb; 
 
             switch (field.type)
             {
+                // https://stackoverflow.com/questions/1003275/how-to-convert-utf-8-byte-to-string
+                // Legacy C code was simpler because it used pointers but which are unavailable in C#
                 case 'S':
+                    sb = new StringBuilder();
                     for (int i = 0; i < field.length; i++)
                     {
                         var Char = data[R + i];
@@ -638,13 +640,14 @@ namespace CRS
                     return sb.ToString().Trim();
 
                 case 'V':
+                    sb = new StringBuilder();
                     long offset = System.BitConverter.ToInt32(data, R);
                     if (offset > 0 && offset < dvm.Length)
                         for (var i = offset; dvm[i] >= 32; i++)
                             sb.Append(Convert.ToChar(dvm[i]));
 
                     return sb.ToString().Trim();
-                    
+
                 case 'T':
                     long julian = System.BitConverter.ToInt32(data, R);
 
@@ -681,14 +684,6 @@ namespace CRS
                     var x2 = (x1 & 0x01);
                     return x2 == 1 ? "yes" : "no";
 
-                case 'E': 
-                // Enum lists are found in the .def file between + and - 
-                    var Enum = data[R];
-                    if (Enum == 255)
-                        return String.Empty;
-                    if (field.range > enums.Count)
-                        return Enum + "";
-                    return enums[field.range].enums[Enum];
                 case 'B':
                     var Byte = data[R];
                     return Byte == 255 ? "" : Byte + "";
@@ -701,18 +696,29 @@ namespace CRS
                     var DoubleWord = System.BitConverter.ToInt32(data, R);
                     return DoubleWord == -2147483648 ? "" : DoubleWord + "";
 
+                case 'E':
+                    // Enum lists are found in the .def file between + and - 
+                    var Enum = data[R];
+                    if (Enum == 255)
+                        return String.Empty;
+                    if (field.range > enums.Count)
+                        return Enum + "";
+                    return enums[field.range].enums[Enum];
+
                 case 'C':
                     // WIP basic conversion of the 'C' (Document) type initially to string (for e.g. _item fields such as definition etc)
                     // Non-text formats were supported, however since the document type may be, for example, Word Perfect, the question is why bother? 
-                    // The application to open them may well be long gone!
+                    // The application to open them may well be long gone! Word .doc files are the only likely valid format left (but these were rarely put in 'C' fields)
 
+                    sb = new StringBuilder();
                     long offset1 = System.BitConverter.ToInt32(data, R);
                     // The legacy dvm file format consists of an 18 byte header, which prefixes a binary (or just text) based document object
                     // For basic conversion, skip the header and copy to first null (this assumes text file format)
-                    
+
                     if (offset1 > 0 && offset1 < dvm.Length)
-                        for (var i = offset1 + 18; dvm[i] > 0; i++) {
-                             var C = dvm[i];
+                        for (var i = offset1 + 18; dvm[i] > 0; i++)
+                        {
+                            var C = dvm[i];
                             if (C == '\t')
                                 sb.Append(' ');
                             if (C >= 32 || C == '\r' || C == '\n')
@@ -721,7 +727,7 @@ namespace CRS
 
                     // TODO consider a base64 encode if non-printing characters are encountered (but this would only make sense Word .doc format)
                     return sb.ToString().Trim();
-                 
+
             }
             return s;
         }
@@ -864,7 +870,7 @@ namespace CRS
 
         public lookup(field f, string lookup)
         {
-            // lookup strings are of the forms
+            // lookup expressions (which could be in parentheses) are of the forms
             //  Title -> 'PMSDomai:TITL.descript'
             //  AttenID -> 'PMSAtten.AttenCombo'
 
@@ -873,7 +879,7 @@ namespace CRS
             if (i < 0)
                 return;
 
-            LookupFrom = lookup.Substring(0, i).Trim().Replace("(", ""); // TODO lookups are "real" expressions that may be parenthesised - ?need the full parser....
+            LookupFrom = lookup.Substring(0, i).Trim().Replace("(", ""); // KLUDGE lookups are "real" expressions that may be parenthesised - ?need the full parser....
 
             var splits = lookup.Split('\'');
             if (splits.Length != 3)
