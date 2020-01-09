@@ -22,5 +22,11 @@ namespace CRS
         {
             InitializeComponent();
         }
+
+
+        private void PrwHost_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+           MainWindow.Prw = null;
+        }
     }
 }

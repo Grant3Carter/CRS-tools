@@ -1,7 +1,8 @@
 ﻿<Window x:Class="CRS.PrwHost"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="PrwHost" Height="500" Width="850">
+        Title="PrwHost" Height="500" Width="850"
+        Closing="PrwHost_Closing">
     <Grid>
         <Canvas HorizontalAlignment="Left" Margin="0,0,0,0" Name="canvas" VerticalAlignment="Top"/>
     </Grid>

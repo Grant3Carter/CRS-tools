@@ -27,7 +27,7 @@ namespace CRS
 
         public static int maximumRows = 100;
 
-        PrwHost Prw;
+        public static PrwHost Prw;
 
         [ThreadStatic]
         public static BackgroundWorker BW;
@@ -270,6 +270,7 @@ namespace CRS
 
             Prw.Show();
         }
+
         #endregion
 
         #region DataGrid
