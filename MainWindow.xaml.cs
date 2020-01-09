@@ -5,10 +5,13 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Markup;
+using System.Windows.Media;
 using System.Xml;
 
 namespace CRS
@@ -19,19 +22,18 @@ namespace CRS
     public partial class MainWindow : Window
     {
         #region Members
-        public List<table> tables = new List<table>();
-        public List<table> views = new List<table>();
+        static public List<table> tables = new List<table>();
+        static public List<table> views = new List<table>();
 
         public static int maximumRows = 100;
+
+        PrwHost Prw;
 
         [ThreadStatic]
         public static BackgroundWorker BW;
         #endregion
 
-        public MainWindow()
-        {
-            InitializeComponent();
-        }
+        public MainWindow() => InitializeComponent();
 
         #region RefreshButton
         private void Refresh_Click(object sender, RoutedEventArgs e)
@@ -39,20 +41,7 @@ namespace CRS
             if (Keyboard.Modifiers == ModifierKeys.Shift)
             {
                 // This POC opens an XAML form in a new window and dynamically adds controls - next step, do so from a legacy prw file!
-                var win2 = new PrwHost();
-                win2.textBox1.Text = "hello world";
-
-                if (views.Count == 0)
-                    return;
-                foreach (var f in views[0].fields)
-                {
-                    Button btn = new Button();
-                    btn.Margin = new Thickness(f.x, f.y, 0, 0);
-                    btn.Width = f.width;
-                    btn.Height = f.height;
-                    win2.stackPanel1.Children.Add(btn);
-                }
-                win2.Show();
+                RenderPrw();
                 return;
             }
 
@@ -183,7 +172,107 @@ namespace CRS
         }
         #endregion
 
-        #region DataGrid
+        #region Prw
+        public void RenderPrw()
+        {
+            // Create an XAML form dynamically from a legacy CRS prw file, then bind it to the legacy data source (TODO bind to XML)
+            if (views.Count == 0)
+                return;
+           
+            var V = views[0];
+            V.recordNumber = 0;
+            var T = tables[0];
+
+            Prw = new PrwHost();
+            if (!String.IsNullOrEmpty(V.caption))
+                Prw.Title = T.Parse(V.caption);
+
+            foreach (var control in V.fields)
+            {
+                if (control.name.Contains("["))
+                    continue;
+
+                var margin = new Thickness(control.x, control.y, 0, 0);
+                switch (control.type)
+                {
+                    case 'b':
+                        Button b = new Button();
+                        b.Margin = margin;
+                        b.Width = control.width;
+                        b.Height = control.height;
+                        b.Content = control.description;
+                        b.Name = control.name;
+                        Prw.canvas.Children.Add(b);
+                        break;
+
+                    case 'z':
+                        TextBlock tb = new TextBlock();
+                        tb.Margin = margin;
+                        tb.Width = control.width;
+                        tb.Height = control.height;
+                        tb.Text = control.description;
+                        tb.Name = control.name;
+                        tb.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+                        tb.VerticalAlignment = System.Windows.VerticalAlignment.Top;
+                        Prw.canvas.Children.Add(tb);
+                        break;
+
+                    case 'l':
+                        CheckBox cb = new CheckBox();
+                        cb.Margin = margin;
+                        cb.Width = control.width;
+                        cb.Height = control.height;
+                        cb.Content = control.description;
+                        cb.Name = control.name;
+                        cb.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+                        cb.VerticalAlignment = System.Windows.VerticalAlignment.Top;
+                        Prw.canvas.Children.Add(cb);
+                        break;
+
+                    default:
+                        TextBox t = new TextBox();
+                        control.control = t;
+                        t.Margin = margin;
+                        t.Width = control.width;
+                        t.Height = control.height;
+                        t.Name = control.name;
+                        t.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+                        t.VerticalAlignment = System.Windows.VerticalAlignment.Top;
+                        if (!String.IsNullOrEmpty(control.help))
+                            t.ToolTip = control.help;
+                        Prw.canvas.Children.Add(t);
+                        break;
+                }
+            }
+
+#if WIP
+            // Create the Button.
+            Button originalButton = new Button();
+            originalButton.Height = 50;
+            originalButton.Width = 100;
+            originalButton.Background = Brushes.AliceBlue;
+            originalButton.Content = "Click Me";
+
+            // Save the Button to a string.
+            string savedButton = XamlWriter.Save(originalButton);
+
+            // Load the button
+            StringReader stringReader = new StringReader(savedButton);
+            XmlReader xmlReader = XmlReader.Create(stringReader);
+            Button readerLoadButton = (Button)XamlReader.Load(xmlReader);
+
+            //  Prw.canvas.Children.Add(readerLoadButton);
+#endif
+        
+
+            WriteAsIndentedXML(views[0].name + "_view.xml", XamlWriter.Save(Prw.canvas));
+            File.Copy(views[0].name + "_view.xml", views[0].name + ".xaml", overwrite: true);
+
+            Prw.Show();
+        }
+#endregion
+
+#region DataGrid
         private void ShowTableInDataGrid(table T)
         {
             Title = "Table " + T.name + " rows " + T.recordCount + ", fields " + T.fields.Count();
@@ -196,7 +285,7 @@ namespace CRS
                 foreach (var f in T.fields)
                     switch (f.type)
                     {
-                        #region SupportedFieldTypes
+#region SupportedFieldTypes
                         case 'S':
                         case 'V':
                         case 'L':
@@ -208,7 +297,7 @@ namespace CRS
                         case 'M':
                         case 'F':
                         case 'G':
-                        #endregion
+#endregion
                             DataGridTextColumn textColumn = new DataGridTextColumn();
                             textColumn.Header = f.name;
                             textColumn.Binding = new Binding(f.name);
@@ -239,6 +328,31 @@ namespace CRS
             }
         }
 
+        private void dataGrid1_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (views.Count == 0)
+                return;
+
+            if (Prw == null)
+                RenderPrw();
+
+            var V = views[0];
+            var T = tables[0];
+
+            T.recordNumber = dataGrid1.SelectedIndex;
+
+            if (!String.IsNullOrEmpty(V.caption))
+                Prw.Title = T.Parse(V.caption);
+
+            foreach (var control in V.fields)
+                if (control.control is TextBox)
+                    (control.control as TextBox).Text = T.sget(control.name);
+        }
+
+        private void dataGrid1_RowEditEnding(object sender, DataGridRowEditEndingEventArgs e)
+        {
+
+        }
 #if WIP
         private void ExportDgvToXML()
         {
@@ -272,9 +386,9 @@ namespace CRS
             ShowTableInDataGrid(T);
             Mouse.OverrideCursor = null;
         }
-        #endregion
+#endregion
 
-        #region Helper
+#region Helper
         public static void WriteAsIndentedXML(String outputFile, String xml)
         {
             try
@@ -291,12 +405,13 @@ namespace CRS
                 File.WriteAllText(outputFile, xml);
             }
         }
-        #endregion
+#endregion
+
     }
 
     public class table
     {
-        #region Members
+#region Members
         // Name
         public string name;
         // Field list
@@ -320,7 +435,9 @@ namespace CRS
         public bool filtered = true;
         // enums (enumerated type)
         public List<enumType> enums = new List<enumType>();
-        #endregion
+        // view specific
+        public string caption;
+#endregion
 
         public table(string file)
         {
@@ -329,16 +446,17 @@ namespace CRS
             name = System.IO.Path.GetFileNameWithoutExtension(file);
             bool bInEnum = false;
             bool bInFields = false;
-           
+
             var Control = new field();
             List<String> currentEnums = new List<string>();
             int i = 0;
+            int iField = 1;
             foreach (var l in File.ReadAllLines(file))
             {
                 if (i == 0)
                     Int32.TryParse(l.Split(' ')[0].Substring(1), out recordLength);
 
-                #region Enum
+#region Enum
                 if (l == "+")
                 {
                     bInEnum = true;
@@ -356,9 +474,9 @@ namespace CRS
                         currentEnums.Add(l);
                     continue;
                 }
-                #endregion
+#endregion
 
-                #region PrwFields
+#region PrwFields
                 if (bInFields)
                 {
                     if (l.StartsWith(".end"))
@@ -371,7 +489,7 @@ namespace CRS
                     }
                     var line = l.Trim();
                     var c = line[0];
-                    if (Char.IsLetter(c) || c == '_')
+                    if (Char.IsLetter(c) || c == '_' || c == '[')
                     {
                         // Field
                         if (!String.IsNullOrEmpty(Control.name))
@@ -380,10 +498,9 @@ namespace CRS
                         var splits = line.Split(';');
                         Control = new field();
                         Control.type = 'S';
-                        Control.name = splits[0].Trim().ToLower();
-                        Control.description = splits[1].Trim();
-                       
 
+                        Control.name = c == '[' ? "Static" + iField++ : splits[0].Trim().ToLower();
+                        Control.description = splits[1].Trim();
                     }
                     else if (c == '/')
                     {
@@ -392,40 +509,52 @@ namespace CRS
                         // Qualifier 
                         // TODO Type, Size
                         if (words.Length > 1)
-                        switch (words[0].ToLower())
-                        {
-                            case "/type":
-                                break;
-
-                            case "/size":
-                                var splits = words[1].Split(',');
-                                if (splits.Length < 4)
+                            switch (words[0].ToLower())
+                            {
+                                case "/type":
+                                    switch (words[1].ToLower())
+                                    {
+                                        case "button": Control.type = 'b'; break;
+                                        case "static": Control.type = 'z'; break;
+                                        case "logical": Control.type = 'l'; break;
+                                    }
                                     break;
-                                Int32.TryParse(splits[0], out Control.x);
-                                Int32.TryParse(splits[1], out Control.y);
-                                Int32.TryParse(splits[2], out Control.width);
-                                Int32.TryParse(splits[3], out Control.height);
-                                break;
-                        }
+
+                                case "/size":
+                                    Control.Size = line;
+                                    var splits = words[1].Split(',');
+                                    if (splits.Length < 4)
+                                        break;
+                                    Int32.TryParse(splits[0], out Control.x);
+                                    Int32.TryParse(splits[1], out Control.y);
+                                    Int32.TryParse(splits[2], out Control.width);
+                                    Int32.TryParse(splits[3], out Control.height);
+                                    break;
+
+                                case "/help":
+                                    Control.help = words[1]; break;
+                            }
                     }
-
-
-
                 }
                 if (l.StartsWith(".field"))
                 {
                     bInFields = true;
                     continue;
                 }
+                if (l.StartsWith(".caption "))
+                {
+                    caption = l.Substring(l.IndexOf(' ')).Trim();
+                    continue;
+                }
 
-                #endregion
+#endregion
 
-                #region Field
+#region Field
                 if (l.StartsWith("@"))
                     fields.Add(new field(l));
-                #endregion
+#endregion
 
-                #region Lookup
+#region Lookup
                 if (l.StartsWith(":L"))
                 {
                     var splits = l.Substring(2).Split(';');
@@ -437,12 +566,12 @@ namespace CRS
                         field.lookup = new lookup(field, splits[1]);
                     }
                 }
-                #endregion
+#endregion
 
-                #region Key
+#region Key
                 if (l.StartsWith("="))
                     keys.Add(l.Substring(1));
-                #endregion
+#endregion
 
                 i++;
             }
@@ -633,35 +762,10 @@ namespace CRS
                                 }
                         }
                     }
-                    else
-                        if (f.lookup == null)
-                            s = XML(f);
-                        else
-                        {
-                            if (!f.lookup.valid)
-                                // e.g. Age TODO
-                                continue;
-
-                            var Domain = f.lookup.DomainTable;
-                            if (Domain == null)
-                                Domain = f.lookup.DomainTable = tables.Find(d => String.Compare(d.name, f.lookup.Domain, ignoreCase: true) == 0);
-                            if (Domain == null)
-                                continue;
-
-                            var fieldDescription = Domain.getField(f.lookup.Description);
-                            var Code = sget(f.lookup.LookupFrom);
-                            var key = String.IsNullOrEmpty(f.lookup.Segment) ? Code : f.lookup.Segment + '\t' + Code;
-
-                            if (Domain.AutoKeys.Count == 0)
-                                Domain.InstantiateAutoKeys();
-
-                            if (Domain.AutoKeys.ContainsKey(key))
-                            {
-                                Domain.recordNumber = (int)Domain.AutoKeys[key]; // aka dbrw
-                                s = Domain.XML(fieldDescription, f.name);
-                            }
-                        }
-
+                    else 
+                       s = XML(f);
+                   
+ 
                     if (!String.IsNullOrEmpty(s))
                         xml.WriteLine(s);
                 }
@@ -671,6 +775,29 @@ namespace CRS
                 }
             }
             xml.WriteLine("</" + name + ">");
+        }
+
+        private string Lookup(field f)
+        {
+            var Domain = f.lookup.DomainTable;
+            if (Domain == null)
+                Domain = f.lookup.DomainTable = MainWindow.tables.Find(d => String.Compare(d.name, f.lookup.Domain, ignoreCase: true) == 0);
+            if (Domain == null)
+                return null;
+
+            var fieldDescription = Domain.getField(f.lookup.Description);
+            var Code = sget(f.lookup.LookupFrom);
+            var key = String.IsNullOrEmpty(f.lookup.Segment) ? Code : f.lookup.Segment + '\t' + Code;
+
+            if (Domain.AutoKeys.Count == 0)
+                Domain.InstantiateAutoKeys();
+
+            if (Domain.AutoKeys.ContainsKey(key))
+            {
+                Domain.recordNumber = (int)Domain.AutoKeys[key]; // aka dbrw
+                return Domain.sget(fieldDescription);
+            }
+            return null;
         }
 
         public field getField(string fieldName)
@@ -711,7 +838,7 @@ namespace CRS
             var R = recordNumber * recordLength + field.offset;
 
             if (field.lookup != null)
-                return "lookup";
+                return Lookup(field);
 
             StringBuilder sb;
 
@@ -834,6 +961,15 @@ namespace CRS
                 enumValue = "<" + fieldName + "Value>" + getEnumValue(field) + "</" + fieldName + "Value>" + enumValue;
             return "<" + fieldName + ">" + System.Net.WebUtility.HtmlEncode(s) + "</" + fieldName + ">" + enumValue;
         }
+
+        public string Parse(string caption)
+        {
+            foreach (Match match in Regex.Matches(caption, @"\&[a-zA-Z_][\\\w.-]*"))
+                caption =
+                    caption.Replace(match.Value, sget(match.Value.Substring(1).Replace("\\", "").ToLower()) ?? "");
+
+            return caption;
+        }
     }
 
     public class related
@@ -848,7 +984,7 @@ namespace CRS
 
     public class field
     {
-        #region Members
+#region Members
         public string name;
         public string description;
         public int offset;
@@ -857,16 +993,19 @@ namespace CRS
         public char type;
         public lookup lookup;
         public string viewTable;
+        public Object control;
 
         public int x;
         public int y;
         public int width;
         public int height;
+        public string Size;
+        public string help;
 
         private string line;
 
         public List<attribute> attributes = new List<attribute>();
-        #endregion
+#endregion
 
         public field(string line_)
         {
@@ -953,22 +1092,22 @@ namespace CRS
 
     public class attribute
     {
-        #region Members
+#region Members
         public string name;
         public string value;
-        #endregion
+#endregion
     }
 
     public class lookup
     {
-        #region Members
+#region Members
         public string LookupFrom;
         public string Segment;
         public string Domain;
         public table DomainTable;
         public string Description;
         public bool valid = false;
-        #endregion
+#endregion
 
         public lookup(field f, string lookup)
         {
