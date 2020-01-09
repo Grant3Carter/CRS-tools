@@ -28,6 +28,7 @@ namespace CRS
         public static int maximumRows = 100;
 
         public static PrwHost Prw;
+        public static table PrwTable;
 
         [ThreadStatic]
         public static BackgroundWorker BW;
@@ -38,13 +39,6 @@ namespace CRS
         #region RefreshButton
         private void Refresh_Click(object sender, RoutedEventArgs e)
         {
-            if (Keyboard.Modifiers == ModifierKeys.Shift)
-            {
-                // This POC opens an XAML form in a new window and dynamically adds controls - next step, do so from a legacy prw file!
-                RenderPrw();
-                return;
-            }
-
             tables = new List<table>();
             views = new List<table>();
 
@@ -87,13 +81,15 @@ namespace CRS
 
                     else if (!String.IsNullOrEmpty(l))
                     {
-                        // otherwise CDA table names are assumed (.def extension is optional)
-
-                        if (File.Exists(l) || File.Exists(l + ".def"))
-                            if (l.Contains(".prw"))
-                                views.Add(new table(l.ToLower()));
-                            else
-                                tables.Add(new table((Path.GetFileNameWithoutExtension(l) + ".def").ToLower()));
+                        // CRS .def file (table) names are assumed (.def extension is optional)
+                        var name = Path.GetFileNameWithoutExtension(l).ToLower();
+                        if (File.Exists(name + ".def"))
+                        {
+                            tables.Add(new table(name + ".def"));
+                            // The .prw with the same name as the table is cached for on demand load during data grid browsing
+                            if (File.Exists(name + ".prw"))
+                                views.Add(new table(name + ".prw"));
+                        }
                     }
                 }
                 // TODO alternatively, consider auto "use" based on lookup and table requirements
@@ -121,7 +117,7 @@ namespace CRS
             ExportSelected.IsEnabled = true;
 
             ShowTable.ItemsSource = tables;
-            ShowTable.SelectedItem = tables[0]; // this triggers ShowTable_SelectionChanged, but only generate a new XML if not yet done.
+            ShowTable.SelectedItem = tables[0]; // this triggers ShowTable_SelectionChanged, it will generate a preview XML if not already done
 
             Mouse.OverrideCursor = null;
         }
@@ -173,15 +169,16 @@ namespace CRS
         #endregion
 
         #region Prw
-        public void RenderPrw()
+        public void RenderPrw(table T, table V)
         {
             // Create an XAML form dynamically from a legacy CRS prw file, then bind it to the legacy data source (TODO bind to XML)
             if (views.Count == 0)
                 return;
-       
-            Prw = new PrwHost();
 
-            var V = views[0];
+            Prw = new PrwHost();
+            PrwTable = T;
+
+
             foreach (var control in V.fields)
             {
                 var margin = new Thickness(control.x, control.y, 0, 0);
@@ -227,7 +224,7 @@ namespace CRS
                         t.Margin = margin;
                         t.Width = control.width;
                         t.Height = control.height;
-                        t.Name = control.name;
+                        t.Name = control.name.Replace(".", "");
                         t.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
                         t.VerticalAlignment = System.Windows.VerticalAlignment.Top;
                         if (!String.IsNullOrEmpty(control.help))
@@ -255,7 +252,7 @@ namespace CRS
 
             //  Prw.canvas.Children.Add(readerLoadButton);
 #endif
-        
+
 
             WriteAsIndentedXML(V.name + "_view.xml", XamlWriter.Save(Prw.canvas));
             File.Copy(V.name + "_view.xml", V.name + ".xaml", overwrite: true);
@@ -277,7 +274,7 @@ namespace CRS
                 foreach (var f in T.fields)
                     switch (f.type)
                     {
-#region SupportedFieldTypes
+                        #region SupportedFieldTypes
                         case 'S':
                         case 'V':
                         case 'L':
@@ -289,7 +286,7 @@ namespace CRS
                         case 'M':
                         case 'F':
                         case 'G':
-#endregion
+                            #endregion
                             DataGridTextColumn textColumn = new DataGridTextColumn();
                             textColumn.Header = f.name;
                             textColumn.Binding = new Binding(f.name);
@@ -310,8 +307,12 @@ namespace CRS
                     DataView dataView = new DataView(dataSet.Tables[0]);
                     dataGrid1.ItemsSource = dataView;
 
-                    if (T.recordCount != dataSet.Tables[0].Rows.Count)
-                        Title = "Table " + T.name + " rows " + T.recordCount + ", fields " + T.fields.Count() + ", non-deleted rows " + dataSet.Tables[0].Rows.Count;
+                    try
+                    {
+                        if (T.recordCount != dataSet.Tables[0].Rows.Count)
+                            Title = "Table " + T.name + " rows " + T.recordCount + ", fields " + T.fields.Count() + ", non-deleted rows " + dataSet.Tables[0].Rows.Count;
+                    }
+                    catch { }
                 }
             }
             catch (Exception ex)
@@ -325,20 +326,29 @@ namespace CRS
             if (views.Count == 0)
                 return;
 
-            if (Prw == null)
-                RenderPrw();
 
-            var V = views[0];
-            var T = tables[0];
+
+            var T = ShowTable.SelectedItem as table;
+            var V = views.Find(v => v.name == T.name);
+
+            if (V == null)
+                V = views[0];
+
+
+            if (Prw == null)
+                RenderPrw(T, V);
 
             T.recordNumber = dataGrid1.SelectedIndex;
 
-            if (!String.IsNullOrEmpty(V.caption))
-                Prw.Title = T.Parse(V.caption);
+            if (T == PrwTable)
+            {
+                if (!String.IsNullOrEmpty(V.caption))
+                    Prw.Title = T.Parse(V.caption);
 
-            foreach (var control in V.fields)
-                if (control.control is TextBox)
-                    (control.control as TextBox).Text = T.sget(control.name);
+                foreach (var control in V.fields)
+                    if (control.control is TextBox)
+                        (control.control as TextBox).Text = T.sget(control.name);
+            }
         }
 
 #if WIP
@@ -368,13 +378,19 @@ namespace CRS
             var T = (sender as ComboBox).SelectedItem as table;
             if (T == null)
                 return;
+
             ExportSelected.Content = "Export " + T.name + " to xml";
             if (Mouse.OverrideCursor != Cursors.AppStarting)
                 Mouse.OverrideCursor = Cursors.Wait;
             ShowTableInDataGrid(T);
+
+
+            if (Prw != null && PrwTable != T)
+                Prw.Close();
+
             Mouse.OverrideCursor = null;
         }
-#endregion
+        #endregion
 
         #region Helper
         public static void WriteAsIndentedXML(String outputFile, String xml)
@@ -743,18 +759,18 @@ namespace CRS
                             }
                             else
                                 if (view.name != name && AutoKeyCode != null && view.getField(AutoKeyCode.name) != null)
-                                {
-                                    if (view.RelationalKeys.Count == 0)
-                                        view.InstantiateRelationalKeys();
-                                    view.ExportToXML(tables, xml, AutoKeyCode.name, sget(AutoKeyCode));
-                                    exportedViews.Add(f.viewTable);
-                                }
+                            {
+                                if (view.RelationalKeys.Count == 0)
+                                    view.InstantiateRelationalKeys();
+                                view.ExportToXML(tables, xml, AutoKeyCode.name, sget(AutoKeyCode));
+                                exportedViews.Add(f.viewTable);
+                            }
                         }
                     }
-                    else 
-                       s = XML(f);
-                   
- 
+                    else
+                        s = XML(f);
+
+
                     if (!String.IsNullOrEmpty(s))
                         xml.WriteLine(s);
                 }
