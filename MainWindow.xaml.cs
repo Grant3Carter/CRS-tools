@@ -178,20 +178,12 @@ namespace CRS
             // Create an XAML form dynamically from a legacy CRS prw file, then bind it to the legacy data source (TODO bind to XML)
             if (views.Count == 0)
                 return;
-           
-            var V = views[0];
-            V.recordNumber = 0;
-            var T = tables[0];
-
+       
             Prw = new PrwHost();
-            if (!String.IsNullOrEmpty(V.caption))
-                Prw.Title = T.Parse(V.caption);
 
+            var V = views[0];
             foreach (var control in V.fields)
             {
-                if (control.name.Contains("["))
-                    continue;
-
                 var margin = new Thickness(control.x, control.y, 0, 0);
                 switch (control.type)
                 {
@@ -265,8 +257,8 @@ namespace CRS
 #endif
         
 
-            WriteAsIndentedXML(views[0].name + "_view.xml", XamlWriter.Save(Prw.canvas));
-            File.Copy(views[0].name + "_view.xml", views[0].name + ".xaml", overwrite: true);
+            WriteAsIndentedXML(V.name + "_view.xml", XamlWriter.Save(Prw.canvas));
+            File.Copy(V.name + "_view.xml", V.name + ".xaml", overwrite: true);
 
             Prw.Show();
         }
@@ -350,10 +342,6 @@ namespace CRS
                     (control.control as TextBox).Text = T.sget(control.name);
         }
 
-        private void dataGrid1_RowEditEnding(object sender, DataGridRowEditEndingEventArgs e)
-        {
-
-        }
 #if WIP
         private void ExportDgvToXML()
         {
@@ -411,7 +399,7 @@ namespace CRS
 
     public class table
     {
-#region Members
+        #region Members
         // Name
         public string name;
         // Field list
@@ -437,7 +425,7 @@ namespace CRS
         public List<enumType> enums = new List<enumType>();
         // view specific
         public string caption;
-#endregion
+        #endregion
 
         public table(string file)
         {
@@ -456,7 +444,7 @@ namespace CRS
                 if (i == 0)
                     Int32.TryParse(l.Split(' ')[0].Substring(1), out recordLength);
 
-#region Enum
+                #region Enum
                 if (l == "+")
                 {
                     bInEnum = true;
@@ -474,9 +462,9 @@ namespace CRS
                         currentEnums.Add(l);
                     continue;
                 }
-#endregion
+                #endregion
 
-#region PrwFields
+                #region PrwFields
                 if (bInFields)
                 {
                     if (l.StartsWith(".end"))
@@ -547,14 +535,14 @@ namespace CRS
                     continue;
                 }
 
-#endregion
+                #endregion
 
-#region Field
+                #region Field
                 if (l.StartsWith("@"))
                     fields.Add(new field(l));
-#endregion
+                #endregion
 
-#region Lookup
+                #region Lookup
                 if (l.StartsWith(":L"))
                 {
                     var splits = l.Substring(2).Split(';');
@@ -566,15 +554,16 @@ namespace CRS
                         field.lookup = new lookup(field, splits[1]);
                     }
                 }
-#endregion
+                #endregion
 
-#region Key
+                #region Key
                 if (l.StartsWith("="))
                     keys.Add(l.Substring(1));
-#endregion
+                #endregion
 
                 i++;
             }
+
             IdentifyAutoKey();
 
             // If x64 is insufficient to deal with memory issues for large .dat or .dvm files, then re-implement using sequential reads 
@@ -587,6 +576,7 @@ namespace CRS
             {
                 data = new byte[0];
             }
+
             try
             {
                 dvm = File.ReadAllBytes(Path.GetFileNameWithoutExtension(file) + ".dvm");
@@ -965,8 +955,7 @@ namespace CRS
         public string Parse(string caption)
         {
             foreach (Match match in Regex.Matches(caption, @"\&[a-zA-Z_][\\\w.-]*"))
-                caption =
-                    caption.Replace(match.Value, sget(match.Value.Substring(1).Replace("\\", "").ToLower()) ?? "");
+                caption = caption.Replace(match.Value, sget(match.Value.Substring(1).Replace("\\", "").ToLower()) ?? "");
 
             return caption;
         }
@@ -984,7 +973,7 @@ namespace CRS
 
     public class field
     {
-#region Members
+        #region Members
         public string name;
         public string description;
         public int offset;
@@ -1005,7 +994,7 @@ namespace CRS
         private string line;
 
         public List<attribute> attributes = new List<attribute>();
-#endregion
+        #endregion
 
         public field(string line_)
         {
@@ -1092,22 +1081,22 @@ namespace CRS
 
     public class attribute
     {
-#region Members
+        #region Members
         public string name;
         public string value;
-#endregion
+        #endregion
     }
 
     public class lookup
     {
-#region Members
+        #region Members
         public string LookupFrom;
         public string Segment;
         public string Domain;
         public table DomainTable;
         public string Description;
         public bool valid = false;
-#endregion
+        #endregion
 
         public lookup(field f, string lookup)
         {
