@@ -270,9 +270,9 @@ namespace CRS
 
             Prw.Show();
         }
-#endregion
+        #endregion
 
-#region DataGrid
+        #region DataGrid
         private void ShowTableInDataGrid(table T)
         {
             Title = "Table " + T.name + " rows " + T.recordCount + ", fields " + T.fields.Count();
@@ -388,7 +388,7 @@ namespace CRS
         }
 #endregion
 
-#region Helper
+        #region Helper
         public static void WriteAsIndentedXML(String outputFile, String xml)
         {
             try
@@ -405,8 +405,7 @@ namespace CRS
                 File.WriteAllText(outputFile, xml);
             }
         }
-#endregion
-
+        #endregion
     }
 
     public class table
@@ -532,7 +531,7 @@ namespace CRS
                                     break;
 
                                 case "/help":
-                                    Control.help = words[1]; break;
+                                    Control.help = line.Substring(line.IndexOf(' ')); break;
                             }
                     }
                 }
@@ -785,7 +784,6 @@ namespace CRS
             if (Domain == null)
                 return null;
 
-            var fieldDescription = Domain.getField(f.lookup.Description);
             var Code = sget(f.lookup.LookupFrom);
             var key = String.IsNullOrEmpty(f.lookup.Segment) ? Code : f.lookup.Segment + '\t' + Code;
 
@@ -795,8 +793,9 @@ namespace CRS
             if (Domain.AutoKeys.ContainsKey(key))
             {
                 Domain.recordNumber = (int)Domain.AutoKeys[key]; // aka dbrw
-                return Domain.sget(fieldDescription);
+                return Domain.sget(Domain.getField(f.lookup.Description));
             }
+
             return null;
         }
 
